@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="347ef242-c392-4aee-897b-d63b829eeb7e" name="Local MC Server" url="http://localhost">
+        <fileTransfer mountedRoot="C:\Users\pifnp\Desktop\MC\Server\plugins" accessType="MOUNT" port="0" />
+      </webServer>
+    </option>
+  </component>
+</project>

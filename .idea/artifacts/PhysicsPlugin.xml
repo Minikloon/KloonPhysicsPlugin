@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact name="PhysicsPlugin">
+    <output-path>$PROJECT_DIR$/../../Server/plugins</output-path>
+    <root id="root" />
+  </artifact>
+</component>

@@ -1,0 +1,11 @@
+com\minikloon\physicsplugin\PhysicsPlugin$1.class
+com\minikloon\physicsplugin\util\bukkit\SkullUtils.class
+com\minikloon\physicsplugin\CustomNativeLibraryLoader.class
+com\minikloon\physicsplugin\util\bukkit\WorldUtils.class
+com\minikloon\physicsplugin\util\ParticleUtils.class
+com\minikloon\physicsplugin\util\JmeUtils.class
+com\minikloon\physicsplugin\boundingboxes\MinecraftBoundingBoxes.class
+com\minikloon\physicsplugin\BukkitPhysicsObject.class
+com\minikloon\physicsplugin\util\bukkit\InertStand.class
+com\minikloon\physicsplugin\physicsobjects\OnlyYawPhysicsStand.class
+com\minikloon\physicsplugin\PhysicsPlugin.class
