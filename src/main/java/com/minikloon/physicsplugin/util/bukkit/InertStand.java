@@ -4,7 +4,6 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
@@ -13,6 +12,9 @@ import org.bukkit.util.Vector;
 
 public final class InertStand {
     public static final Vector HEAD_HEIGHT_OFFSET = new Vector(0, -1.8, 0);
+
+    public static final Vector SMALL_HEAD_HEIGHT_OFFSET = new Vector(0, -1.0, 0);
+    public static final Vector SMALL_HEAD_SIZE = new Vector(0.3, 0.3, 0.3);
 
     public static ArmorStand spawn(Location headLoc) {
         Location spawnLoc = headLoc.clone().add(HEAD_HEIGHT_OFFSET);

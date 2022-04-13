@@ -12,6 +12,10 @@ import java.util.stream.Stream;
 
 public final class ParticleUtils {
     public static void drawCubeParticles(Location center, Quaternion rotation) {
+        drawCubeParticles(center, rotation, 1f);
+    }
+
+    public static void drawCubeParticles(Location center, Quaternion rotation, float scale) {
         World world = center.getWorld();
 
         world.getPlayers().forEach(player -> {
@@ -27,7 +31,7 @@ public final class ParticleUtils {
                     new Vector3f(-1, -1, 1),
                     new Vector3f(-1, -1, -1)
             ).forEach(corner -> {
-                corner.multLocal(0.3f);
+                corner.multLocal(scale);
                 matrix3f.multLocal(corner);
                 Location loc = center.clone()
                         .add(corner.x, corner.y, corner.z);
@@ -35,17 +39,17 @@ public final class ParticleUtils {
             });
 
             Vector3f dir = matrix3f.multLocal(new Vector3f(1, 0, 0));
-            drawLineParticles(player, Particle.CRIT, center, dir);
+            drawLineParticles(player, Particle.CRIT, center, dir, scale);
 
             if (! dir.equals(Vector3f.UNIT_Z)) {
                 Vector3f up = dir.cross(Vector3f.UNIT_Z.mult(-1));
-                drawLineParticles(player, Particle.SMALL_FLAME, center, up);
+                drawLineParticles(player, Particle.SMALL_FLAME, center, up, scale);
             }
         });
     }
 
-    public static void drawLineParticles(Player player, Particle particle, Location start, Vector3f dir) {
-        for (float i = 1; i <= 3; i += 0.1) {
+    public static void drawLineParticles(Player player, Particle particle, Location start, Vector3f dir, float scale) {
+        for (float i = 1; i <= scale; i += 0.1) {
             Vector3f offset = dir.mult(i);
             Location particleLoc = start.clone().add(offset.x, offset.y, offset.z);
             player.spawnParticle(particle, particleLoc, 1, 0, 0, 0, 0);

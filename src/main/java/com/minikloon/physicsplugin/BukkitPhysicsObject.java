@@ -1,7 +1,7 @@
 package com.minikloon.physicsplugin;
 
 import com.jme3.bullet.PhysicsSpace;
-import com.jme3.bullet.collision.PhysicsCollisionObject;
+import com.jme3.bullet.objects.PhysicsRigidBody;
 import org.bukkit.entity.Entity;
 
 import javax.annotation.Nullable;
@@ -19,7 +19,7 @@ public interface BukkitPhysicsObject {
 
     PhysicsSpace getPhysicsSpace();
 
-    PhysicsCollisionObject getCollisionObject();
+    PhysicsRigidBody getRigidBody();
 
     default void remove() {
         Collection<? extends Entity> entities = getEntities();
@@ -29,6 +29,6 @@ public interface BukkitPhysicsObject {
             entities.forEach(Entity::remove);
         }
 
-        getPhysicsSpace().removeCollisionObject(getCollisionObject());
+        getPhysicsSpace().removeCollisionObject(getRigidBody());
     }
 }

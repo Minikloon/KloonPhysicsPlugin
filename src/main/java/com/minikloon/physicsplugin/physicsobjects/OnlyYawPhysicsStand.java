@@ -65,7 +65,7 @@ public class OnlyYawPhysicsStand implements BukkitPhysicsObject {
     }
 
     @Override
-    public PhysicsCollisionObject getCollisionObject() {
+    public PhysicsRigidBody getRigidBody() {
         return cube;
     }
 
@@ -76,6 +76,7 @@ public class OnlyYawPhysicsStand implements BukkitPhysicsObject {
 
         BoxCollisionShape collisionShape = new BoxCollisionShape(0.3f / 2);
         PhysicsRigidBody cube = new PhysicsRigidBody(collisionShape, 1f);
+        cube.setEnableSleep(false);
         physicsSpace.addCollisionObject(cube);
 
         cube.setPhysicsLocation(vec(spawnLoc));

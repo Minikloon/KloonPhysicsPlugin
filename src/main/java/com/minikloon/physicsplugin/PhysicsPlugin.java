@@ -9,7 +9,12 @@ import cloud.commandframework.execution.CommandExecutionCoordinator;
 import cloud.commandframework.meta.SimpleCommandMeta;
 import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.paper.PaperCommandManager;
+import com.jme3.bounding.BoundingBox;
 import com.jme3.bullet.PhysicsSpace;
+import com.jme3.bullet.collision.PhysicsCollisionEvent;
+import com.jme3.bullet.collision.PhysicsCollisionListener;
+import com.jme3.bullet.collision.PhysicsCollisionObject;
+import com.jme3.bullet.collision.PhysicsRayTestResult;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.collision.shapes.PlaneCollisionShape;
@@ -17,34 +22,42 @@ import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.math.Plane;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.minikloon.physicsplugin.boundingboxes.MinecraftBoundingBoxes;
 import com.minikloon.physicsplugin.physicsobjects.OnlyYawPhysicsStand;
-import com.minikloon.physicsplugin.util.ParticleUtils;
+import com.minikloon.physicsplugin.physicsobjects.StandCubePhysicsObject;
 import com.minikloon.physicsplugin.util.JmeUtils;
+import com.minikloon.physicsplugin.util.ParticleUtils;
 import com.minikloon.physicsplugin.util.bukkit.InertStand;
 import com.minikloon.physicsplugin.util.bukkit.WorldUtils;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.BoundingBox;
 import org.bukkit.util.EulerAngle;
+import org.bukkit.util.Vector;
 
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
-public class PhysicsPlugin extends JavaPlugin {
+import static com.minikloon.physicsplugin.util.JmeUtils.*;
+
+public class PhysicsPlugin extends JavaPlugin implements Listener {
     private PaperCommandManager<Player> commandManager;
     private BukkitAudiences bukkitAudiences;
     private MinecraftHelp<Player> minecraftHelp;
@@ -53,12 +66,15 @@ public class PhysicsPlugin extends JavaPlugin {
     private Map<UUID, PhysicsRigidBody> playerBodies = new HashMap<>();
     private Set<BukkitPhysicsObject> physicsObjects = new HashSet<>();
     private Set<ArmorStand> stands = new HashSet<>();
+    private PhysicsRigidBody floor;
 
     @Override
     public void onEnable() {
         if (! loadNativeLibraries()) {
             return;
         }
+
+        physicsSpace = new PhysicsSpace(PhysicsSpace.BroadphaseType.DBVT);
 
         try {
             commandManager = new PaperCommandManager<>(this,
@@ -72,6 +88,7 @@ public class PhysicsPlugin extends JavaPlugin {
 
         AnnotationParser<Player> annotationParser = new AnnotationParser<>(commandManager, Player.class, params -> SimpleCommandMeta.empty());
         annotationParser.parse(this);
+        annotationParser.parse(new SpawnCommands(this));
 
         this.bukkitAudiences = BukkitAudiences.create(this);
         this.minecraftHelp = new MinecraftHelp<>(
@@ -80,9 +97,10 @@ public class PhysicsPlugin extends JavaPlugin {
                 commandManager
         );
 
-        physicsSpace = new PhysicsSpace(PhysicsSpace.BroadphaseType.DBVT);
+        Bukkit.getOnlinePlayers().forEach(this::addPlayerRigidBody);
 
-        Bukkit.getOnlinePlayers().forEach(this::addPlayerRididBody);
+        PluginManager pm = getServer().getPluginManager();
+        pm.registerEvents(this, this);
 
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             Bukkit.getOnlinePlayers().forEach(player -> {
@@ -108,6 +126,26 @@ public class PhysicsPlugin extends JavaPlugin {
         return true;
     }
 
+    public PhysicsSpace getPhysicsSpace() {
+        return physicsSpace;
+    }
+
+    public Set<BukkitPhysicsObject> getPhysicsObjects() {
+        return physicsObjects;
+    }
+
+    public void addPhysicsObject(BukkitPhysicsObject obj) {
+        physicsObjects.add(obj);
+    }
+
+    public void setFloor(PhysicsRigidBody floor) {
+        this.floor = floor;
+    }
+
+    public PhysicsRigidBody getFloor() {
+        return floor;
+    }
+
     @Override
     public void onDisable() {
         physicsObjects.forEach(BukkitPhysicsObject::remove);
@@ -116,11 +154,64 @@ public class PhysicsPlugin extends JavaPlugin {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        addPlayerRididBody(e.getPlayer());
+        addPlayerRigidBody(e.getPlayer());
     }
 
-    private void addPlayerRididBody(Player player) {
-        BoundingBox boundingBox = player.getBoundingBox();
+    @EventHandler
+    public void onHitMidair(PlayerInteractEvent e) {
+        if (! e.getAction().isLeftClick()) {
+            return;
+        }
+
+        Player player = e.getPlayer();
+        World world = player.getWorld();
+
+        Location eyeLoc = player.getEyeLocation();
+        float range = 30;
+
+        Vector3f start = vec(eyeLoc);
+        Vector3f dir = vec(eyeLoc.getDirection());
+        Vector3f end = start.add(dir.mult(range));
+
+        List<PhysicsRayTestResult> collisions = physicsSpace.rayTest(start, end);
+
+        Particle particle = Particle.SMALL_FLAME;
+        for (PhysicsRayTestResult result : collisions) {
+            PhysicsCollisionObject collisionObject = result.getCollisionObject();
+            if (! (collisionObject instanceof PhysicsRigidBody rigidBody)) {
+                continue;
+            }
+            if (rigidBody == floor) {
+                continue;
+            }
+
+            particle = Particle.SOUL_FIRE_FLAME;
+
+            rigidBody.applyCentralForce(dir.mult(500));
+            //rigidBody.applyCentralImpulse(dir.mult(10));
+            player.sendMessage("Force applied!");
+
+            Vector3f diff = end.subtract(start);
+            Vector3f hitLoc = start.add(diff.mult(result.getHitFraction()));
+            Vector3f normal = result.getHitNormalLocal();
+            ThreadLocalRandom rand = ThreadLocalRandom.current();
+            for (int i = 0; i < 10; ++i) {
+                Function<Float, Float> directionMult = x -> x * (1.0f + (float) rand.nextGaussian() * 0.5f);
+                Vector3f particleDir = new Vector3f(directionMult.apply(normal.x), directionMult.apply(normal.y), directionMult.apply(normal.z));
+                player.spawnParticle(Particle.FLAME, loc(hitLoc, world), 0, particleDir.x, particleDir.y, particleDir.z, 0.05f);
+            }
+
+            break;
+        }
+
+        for (float i = 0.5f; i < range; i += 0.33) {
+            Location particleLoc = loc(start.add(dir.mult(i)), world);
+            player.spawnParticle(particle, particleLoc, 1, 0f, 0f, 0f, 0f);
+        }
+    }
+
+    private void addPlayerRigidBody(Player player) {
+        org.bukkit.util.BoundingBox boundingBox = player.getBoundingBox();
         BoxCollisionShape box = MinecraftBoundingBoxes.toShape(boundingBox);
         PhysicsRigidBody rigidBody = new PhysicsRigidBody(box, PhysicsBody.massForStatic);
         updatePlayerRigidBody(player, rigidBody);
@@ -131,7 +222,7 @@ public class PhysicsPlugin extends JavaPlugin {
     private void updatePlayerRigidBody(Player player, PhysicsRigidBody rigidBody) {
         Location playerloc = player.getLocation();
 
-        rigidBody.setPhysicsLocation(JmeUtils.vec(playerloc));
+        rigidBody.setPhysicsLocation(vec(playerloc));
 
         Quaternion rotation = new Quaternion();
         rotation.fromAngles(0f, (float) Math.toRadians(playerloc.getYaw()), 0f);
@@ -158,31 +249,20 @@ public class PhysicsPlugin extends JavaPlugin {
         minecraftHelp.queryCommands(query == null ? "" : query, player);
     }
 
-    private boolean registeredFloor = false;
-
-    @CommandMethod("physics box")
-    private void box(Player player) {
-        Location eyeLoc = player.getEyeLocation();
-        Location aBitInFront = eyeLoc.clone()
-                .add(eyeLoc.getDirection().multiply(1.5));
-
-        OnlyYawPhysicsStand physicsObject = OnlyYawPhysicsStand.spawn(physicsSpace, aBitInFront);
-        physicsObjects.add(physicsObject);
-
-        if (! registeredFloor) {
-            registeredFloor = true;
-
-            Block below = WorldUtils.findFirstSolidBelow(aBitInFront);
-            double floorY;
-            if (below == null) {
-                floorY = 0;
-            } else {
-                floorY = below.getY() - 0.2;
-                floorY += MinecraftBoundingBoxes.get(below).getHeight();
+    @CommandMethod("makeabigfloor")
+    private void makeabigfloor(Player player) {
+        Block base = player.getLocation().getBlock();
+        int radius = 50;
+        for (int x = -radius; x <= radius; ++x) {
+            for (int z = -radius; z <= radius; ++z) {
+                for (int y = -20; y <= 20; ++y) {
+                    if (y == -20) {
+                        base.getRelative(x, y, z).setType(Material.IRON_BLOCK);
+                    } else {
+                        base.getRelative(x, y, z).setType(Material.AIR);
+                    }
+                }
             }
-
-            PlaneCollisionShape floor = new PlaneCollisionShape(new Plane(new Vector3f(0, 1, 0), (float) floorY + 0.5f));
-            physicsSpace.addCollisionObject(new PhysicsRigidBody(floor, PhysicsRigidBody.massForStatic));
         }
     }
 
@@ -229,7 +309,7 @@ public class PhysicsPlugin extends JavaPlugin {
                             .add(InertStand.HEAD_HEIGHT_OFFSET)
                             .add(rotOffset.x, rotOffset.y, rotOffset.z));
 
-                    EulerAngle eulerAngle = JmeUtils.toBukkitEulerAngles(rotation);
+                    EulerAngle eulerAngle = toBukkitEulerAngles(rotation);
 
                     stand.setHeadPose(eulerAngle);
                 });
