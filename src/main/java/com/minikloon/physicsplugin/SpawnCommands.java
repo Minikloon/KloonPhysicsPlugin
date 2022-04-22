@@ -150,7 +150,7 @@ public class SpawnCommands {
         } else if ("holos_hollow".equals(type)) {
             physicsObject = StandCubePhysicsObject.spawn(physicsSpace, spawnLoc, 3f, 0.5f, true);
         } else if ("soft".equals(type)) {
-            physicsObject = ClothPhysicsObject.spawn((PhysicsSoftSpace) physicsSpace, spawnLoc, 0.6f, 10, 10);
+            physicsObject = ClothPhysicsObject.spawn((PhysicsSoftSpace) physicsSpace, spawnLoc, 0.65f, 18, 18);
         } else {
             player.sendMessage(ChatColor.RED + "Unknown box type");
             return null;
@@ -176,7 +176,7 @@ public class SpawnCommands {
             floorY += MinecraftBoundingBoxes.get(below).getHeight();
         }
 
-        PlaneCollisionShape floorShape = new PlaneCollisionShape(new Plane(new Vector3f(0, 1, 0), (float) floorY + 0.5f + 5)); // TODO: not 5
+        PlaneCollisionShape floorShape = new PlaneCollisionShape(new Plane(new Vector3f(0, 1, 0), (float) floorY + 0.5f));
         PhysicsRigidBody floor = new PhysicsRigidBody(floorShape, PhysicsRigidBody.massForStatic);
         floor.setFriction(2f);
         physicsSpace.addCollisionObject(floor);

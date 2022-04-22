@@ -150,6 +150,8 @@ public class StandCubePhysicsObject implements BukkitPhysicsObject {
         rigidBody.setEnableSleep(false);
         physicsSpace.addCollisionObject(rigidBody);
 
+        rigidBody.setMass(10f);
+
         rigidBody.setPhysicsLocation(vec(center));
         rigidBody.setPhysicsRotation(rotation);
 

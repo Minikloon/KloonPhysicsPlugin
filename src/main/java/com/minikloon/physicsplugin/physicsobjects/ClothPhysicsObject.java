@@ -5,6 +5,7 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.bullet.objects.PhysicsSoftBody;
+import com.jme3.bullet.objects.infos.SoftBodyMaterial;
 import com.jme3.bullet.util.NativeSoftBodyUtil;
 import com.jme3.math.Rectangle;
 import com.jme3.math.Vector3f;
@@ -15,6 +16,7 @@ import com.minikloon.physicsplugin.BukkitPhysicsObject;
 import com.minikloon.physicsplugin.util.JmeUtils;
 import com.minikloon.physicsplugin.util.bukkit.InertStand;
 import com.minikloon.physicsplugin.util.bukkit.WorldUtils;
+import jme3utilities.mesh.ClothGrid;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -81,20 +83,23 @@ public class ClothPhysicsObject implements BukkitPhysicsObject {
         return physicsBody;
     }
 
-    public static ClothPhysicsObject spawn(PhysicsSoftSpace physicsSpace, Location center, float betweenPoints, float width, float height) {
+    public static ClothPhysicsObject spawn(PhysicsSoftSpace physicsSpace, Location center, float betweenPoints, int width, int height) {
         World world = center.getWorld();
         Vector3f spawnLoc = JmeUtils.vec(center);
 
         PhysicsSoftBody softBody = new PhysicsSoftBody();
         softBody.setMargin(0.1f);
+        softBody.setMass(1f);
 
-        Rectangle rectangle = new Rectangle(new Vector3f(0, 0, 0), new Vector3f(0, height, 0), new Vector3f(width, 0, 0));
-        RectangleMesh mesh = new RectangleMesh(rectangle);
-        NativeSoftBodyUtil.appendFromTriMesh(mesh, softBody);
+        SoftBodyMaterial softMaterial = softBody.getSoftMaterial();
+        softMaterial.setAngularStiffness(0f);
+
+        Mesh squareGrid = new ClothGrid(width, height, betweenPoints);
+        NativeSoftBodyUtil.appendFromTriMesh(squareGrid, softBody);
 
         List<ArmorStand> stands = new ArrayList<>(softBody.countNodes());
 
-        FloatBuffer locsBuffer = BufferUtils.createFloatBuffer(softBody.countNodes());
+        FloatBuffer locsBuffer = BufferUtils.createFloatBuffer(softBody.countNodes() * 3);
         softBody.copyLocations(locsBuffer);
 
         for (int i = 0; i < softBody.countNodes(); ++i) {
