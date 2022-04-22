@@ -5,7 +5,11 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.bullet.objects.PhysicsSoftBody;
+import com.jme3.bullet.util.NativeSoftBodyUtil;
+import com.jme3.math.Rectangle;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Mesh;
+import com.jme3.scene.shape.RectangleMesh;
 import com.jme3.util.BufferUtils;
 import com.minikloon.physicsplugin.BukkitPhysicsObject;
 import com.minikloon.physicsplugin.util.JmeUtils;
@@ -77,24 +81,21 @@ public class ClothPhysicsObject implements BukkitPhysicsObject {
         return physicsBody;
     }
 
-    public static ClothPhysicsObject spawn(PhysicsSoftSpace physicsSpace, Location center, float betweenPoints, int width, int height) {
+    public static ClothPhysicsObject spawn(PhysicsSoftSpace physicsSpace, Location center, float betweenPoints, float width, float height) {
         World world = center.getWorld();
         Vector3f spawnLoc = JmeUtils.vec(center);
 
         PhysicsSoftBody softBody = new PhysicsSoftBody();
         softBody.setMargin(0.1f);
 
-        int pointsCount = width * height;
-        FloatBuffer locsBuffer = BufferUtils.createFloatBuffer(3 * pointsCount);
-        for (int x = 0; x < width; ++x) {
-            for (int y = 0; y < height; ++y) {
-                locsBuffer.put(x * betweenPoints).put(y * betweenPoints).put(y * betweenPoints / 2);
-            }
-        }
-
-        softBody.appendNodes(locsBuffer);
+        Rectangle rectangle = new Rectangle(new Vector3f(0, 0, 0), new Vector3f(0, height, 0), new Vector3f(width, 0, 0));
+        RectangleMesh mesh = new RectangleMesh(rectangle);
+        NativeSoftBodyUtil.appendFromTriMesh(mesh, softBody);
 
         List<ArmorStand> stands = new ArrayList<>(softBody.countNodes());
+
+        FloatBuffer locsBuffer = BufferUtils.createFloatBuffer(softBody.countNodes());
+        softBody.copyLocations(locsBuffer);
 
         for (int i = 0; i < softBody.countNodes(); ++i) {
             float[] localCoords = new float[3];
