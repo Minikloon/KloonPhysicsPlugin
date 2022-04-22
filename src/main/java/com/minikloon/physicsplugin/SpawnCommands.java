@@ -1,19 +1,20 @@
 package com.minikloon.physicsplugin;
 
 import cloud.commandframework.annotations.CommandMethod;
+import com.jme3.bullet.PhysicsSoftSpace;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.RotationOrder;
-import com.jme3.bullet.collision.PhysicsCollisionEvent;
-import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.collision.shapes.PlaneCollisionShape;
 import com.jme3.bullet.joints.New6Dof;
 import com.jme3.bullet.joints.motors.MotorParam;
-import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
+import com.jme3.bullet.objects.PhysicsSoftBody;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Plane;
 import com.jme3.math.Vector3f;
+import com.jme3.util.BufferUtils;
 import com.minikloon.physicsplugin.boundingboxes.MinecraftBoundingBoxes;
+import com.minikloon.physicsplugin.physicsobjects.ClothPhysicsObject;
 import com.minikloon.physicsplugin.physicsobjects.OnlyYawPhysicsStand;
 import com.minikloon.physicsplugin.physicsobjects.StandCubePhysicsObject;
 import com.minikloon.physicsplugin.util.JmeUtils;
@@ -26,9 +27,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class SpawnCommands {
     private final PhysicsPlugin plugin;
@@ -72,7 +73,7 @@ public class SpawnCommands {
 
         BukkitPhysicsObject obj = spawn(player, bukkitSpawnLoc, "holos_hollow");
 
-        PhysicsRigidBody rigidBody = obj.getRigidBody();
+        PhysicsRigidBody rigidBody = (PhysicsRigidBody) obj.getPhysicsBody();
 
         New6Dof joint = new New6Dof(rigidBody, new Vector3f(0, 0, 0), spawnLoc, Matrix3f.IDENTITY, Matrix3f.IDENTITY, RotationOrder.XYZ);
         joint.set(MotorParam.LowerLimit, PhysicsSpace.AXIS_X, +1f);
@@ -124,6 +125,22 @@ public class SpawnCommands {
         obj.getPhysicsSpace().addJoint(joint);
     }
 
+    @CommandMethod("physics soft")
+    private void soft(Player player) {
+        World world = player.getWorld();
+        Location eyeLoc = player.getEyeLocation();
+        Location bukkitSpawnLoc = eyeLoc.clone()
+                .add(eyeLoc.getDirection().multiply(8));
+
+        if (! (physicsSpace instanceof PhysicsSoftSpace)) {
+            player.sendMessage(ChatColor.RED + "Not a soft physics space!");
+            return;
+        }
+        PhysicsSoftSpace softSpace = (PhysicsSoftSpace) physicsSpace;
+
+        spawn(player, bukkitSpawnLoc, "soft");
+    }
+
     private BukkitPhysicsObject spawn(Player player, Location spawnLoc, String type) {
         BukkitPhysicsObject physicsObject;
         if ("stand".equals(type)) {
@@ -132,6 +149,8 @@ public class SpawnCommands {
             physicsObject = StandCubePhysicsObject.spawn(physicsSpace, spawnLoc, 3f, 0.5f, false);
         } else if ("holos_hollow".equals(type)) {
             physicsObject = StandCubePhysicsObject.spawn(physicsSpace, spawnLoc, 3f, 0.5f, true);
+        } else if ("soft".equals(type)) {
+            physicsObject = ClothPhysicsObject.spawn((PhysicsSoftSpace) physicsSpace, spawnLoc, 0.6f, 10, 10);
         } else {
             player.sendMessage(ChatColor.RED + "Unknown box type");
             return null;
@@ -157,7 +176,7 @@ public class SpawnCommands {
             floorY += MinecraftBoundingBoxes.get(below).getHeight();
         }
 
-        PlaneCollisionShape floorShape = new PlaneCollisionShape(new Plane(new Vector3f(0, 1, 0), (float) floorY + 0.5f));
+        PlaneCollisionShape floorShape = new PlaneCollisionShape(new Plane(new Vector3f(0, 1, 0), (float) floorY + 0.5f + 5)); // TODO: not 5
         PhysicsRigidBody floor = new PhysicsRigidBody(floorShape, PhysicsRigidBody.massForStatic);
         floor.setFriction(2f);
         physicsSpace.addCollisionObject(floor);

@@ -3,6 +3,7 @@ package com.minikloon.physicsplugin.physicsobjects;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.PhysicsCollisionObject;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
+import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.math.Quaternion;
 import com.minikloon.physicsplugin.BukkitPhysicsObject;
@@ -65,7 +66,7 @@ public class OnlyYawPhysicsStand implements BukkitPhysicsObject {
     }
 
     @Override
-    public PhysicsRigidBody getRigidBody() {
+    public PhysicsBody getPhysicsBody() {
         return cube;
     }
 

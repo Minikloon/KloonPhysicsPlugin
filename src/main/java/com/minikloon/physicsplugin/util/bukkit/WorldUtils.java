@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 
 import javax.annotation.Nullable;
+import java.text.NumberFormat;
 
 public final class WorldUtils {
     public static Block findFirstSolidBelow(Location loc) {
@@ -26,5 +27,10 @@ public final class WorldUtils {
             }
         }
         return null;
+    }
+
+    public static String fmtLoc(Location loc) {
+        NumberFormat nf = NumberFormat.getInstance();
+        return nf.format(loc.getX()) + " " + nf.format(loc.getY()) + " " + nf.format(loc.getZ());
     }
 }

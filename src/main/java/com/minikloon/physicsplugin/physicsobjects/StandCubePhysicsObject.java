@@ -95,7 +95,7 @@ public class StandCubePhysicsObject implements BukkitPhysicsObject {
     }
 
     @Override
-    public PhysicsRigidBody getRigidBody() {
+    public PhysicsRigidBody getPhysicsBody() {
         return rigidBody;
     }
 

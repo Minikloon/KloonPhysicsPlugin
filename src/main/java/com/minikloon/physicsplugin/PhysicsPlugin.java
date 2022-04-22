@@ -9,28 +9,18 @@ import cloud.commandframework.execution.CommandExecutionCoordinator;
 import cloud.commandframework.meta.SimpleCommandMeta;
 import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.paper.PaperCommandManager;
-import com.jme3.bounding.BoundingBox;
+import com.jme3.bullet.PhysicsSoftSpace;
 import com.jme3.bullet.PhysicsSpace;
-import com.jme3.bullet.collision.PhysicsCollisionEvent;
-import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.collision.PhysicsCollisionObject;
 import com.jme3.bullet.collision.PhysicsRayTestResult;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
-import com.jme3.bullet.collision.shapes.CollisionShape;
-import com.jme3.bullet.collision.shapes.PlaneCollisionShape;
 import com.jme3.bullet.objects.PhysicsBody;
 import com.jme3.bullet.objects.PhysicsRigidBody;
-import com.jme3.math.Plane;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.minikloon.physicsplugin.boundingboxes.MinecraftBoundingBoxes;
-import com.minikloon.physicsplugin.physicsobjects.OnlyYawPhysicsStand;
-import com.minikloon.physicsplugin.physicsobjects.StandCubePhysicsObject;
-import com.minikloon.physicsplugin.util.JmeUtils;
 import com.minikloon.physicsplugin.util.ParticleUtils;
 import com.minikloon.physicsplugin.util.bukkit.InertStand;
-import com.minikloon.physicsplugin.util.bukkit.WorldUtils;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -46,13 +36,11 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
-import org.bukkit.util.Vector;
 
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import static com.minikloon.physicsplugin.util.JmeUtils.*;
@@ -62,7 +50,7 @@ public class PhysicsPlugin extends JavaPlugin implements Listener {
     private BukkitAudiences bukkitAudiences;
     private MinecraftHelp<Player> minecraftHelp;
 
-    private PhysicsSpace physicsSpace;
+    private PhysicsSoftSpace physicsSpace;
     private Map<UUID, PhysicsRigidBody> playerBodies = new HashMap<>();
     private Set<BukkitPhysicsObject> physicsObjects = new HashSet<>();
     private Set<ArmorStand> stands = new HashSet<>();
@@ -74,7 +62,8 @@ public class PhysicsPlugin extends JavaPlugin implements Listener {
             return;
         }
 
-        physicsSpace = new PhysicsSpace(PhysicsSpace.BroadphaseType.DBVT);
+        float worldSize = 1_000f;
+        physicsSpace = new PhysicsSoftSpace(new Vector3f(-worldSize, 0, -worldSize), new Vector3f(worldSize, 256, worldSize), PhysicsSpace.BroadphaseType.DBVT);
 
         try {
             commandManager = new PaperCommandManager<>(this,
@@ -132,6 +121,10 @@ public class PhysicsPlugin extends JavaPlugin implements Listener {
 
     public Set<BukkitPhysicsObject> getPhysicsObjects() {
         return physicsObjects;
+    }
+
+    public Set<ArmorStand> getStands() {
+        return stands;
     }
 
     public void addPhysicsObject(BukkitPhysicsObject obj) {
